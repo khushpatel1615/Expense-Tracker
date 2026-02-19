@@ -1,0 +1,28 @@
+# Expense Tracker — Apache Config
+# Enables clean routing for PHP API endpoints
+
+Options -Indexes
+
+# Handle CORS preflight
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /Expense%20Tracker/
+
+  # Allow direct access to existing files/dirs
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "DENY"
+  Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# PHP settings
+<IfModule mod_php.c>
+  php_value upload_max_filesize 10M
+  php_value post_max_size 10M
+</IfModule>

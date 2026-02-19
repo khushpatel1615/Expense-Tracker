@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expense Tracker — Khush Patel</title>
+    <meta name="description"
+        content="Full-stack expense tracker with dashboard, charts, budgets, and transaction management." />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="assets/css/style.css" />
+
+    <!-- ⚡ Theme: apply saved preference BEFORE paint to prevent flash -->
+    <script>
+        (function () {
+            var t = localStorage.getItem('et_theme');
+            if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+</head>
+
+<body>
+
+    <!-- ===================== TOAST CONTAINER ===================== -->
+    <div id="toast-container" aria-live="polite"></div>
+
+    <!-- ===================== MOBILE TOP BAR ===================== -->
+    <div class="mobile-topbar">
+        <button id="hamburger-btn" class="hamburger-btn" aria-label="Toggle menu">☰</button>
+        <div class="sidebar-logo" style="margin:0;">
+            <div class="logo-icon" style="width:34px;height:34px;font-size:16px;">💰</div>
+            <span class="logo-text" style="font-size:.9rem;">Expense Tracker</span>
+        </div>
+        <button id="theme-toggle-topbar" class="theme-toggle-topbar" aria-label="Toggle theme"
+            title="Toggle light/dark mode">
+            🌙
+        </button>
+    </div>
+
+    <!-- ===================== SIDEBAR OVERLAY ===================== -->
+    <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
+
+    <!-- ======================================================== -->
+    <!--  AUTH SCREEN                                             -->
+    <!-- ======================================================== -->
+    <div id="auth-screen">
+        <div class="auth-page">
+            <div class="auth-bg-glow glow-1"></div>
+            <div class="auth-bg-glow glow-2"></div>
+
+            <!-- LOGIN FORM -->
+            <div id="login-form-wrap" class="auth-card">
+                <div class="auth-logo">
+                    <div class="auth-logo-icon">💰</div>
+                    <div>
+                        <div class="auth-logo-text">Expense Tracker</div>
+                        <div class="auth-logo-sub">by Khush Patel</div>
+                    </div>
+                </div>
+
+                <h1 class="auth-title">Welcome back</h1>
+                <p class="auth-subtitle">Sign in to view your financial dashboard.</p>
+
+                <form id="login-form" novalidate>
+                    <div class="form-group">
+                        <label class="form-label" for="login-email">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-icon">📧</span>
+                            <input id="login-email" type="email" class="form-control" placeholder="you@example.com"
+                                required autocomplete="email" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="login-password">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-icon">🔒</span>
+                            <input id="login-password" type="password" class="form-control" placeholder="Your password"
+                                required autocomplete="current-password" />
+                        </div>
+                    </div>
+
+                    <button id="login-submit-btn" type="submit" class="btn btn-primary btn-full btn-lg">
+                        Sign In
+                    </button>
+                </form>
+
+                <div class="auth-switch">
+                    Don't have an account?
+                    <a href="#" id="show-register-link">Create one free →</a>
+                </div>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div id="register-form-wrap" class="auth-card hidden">
+                <div class="auth-logo">
+                    <div class="auth-logo-icon">💰</div>
+                    <div>
+                        <div class="auth-logo-text">Expense Tracker</div>
+                        <div class="auth-logo-sub">Create your account</div>
+                    </div>
+                </div>
+
+                <h1 class="auth-title">Get started</h1>
+                <p class="auth-subtitle">Start tracking your finances in seconds.</p>
+
+                <form id="register-form" novalidate>
+                    <div class="form-group">
+                        <label class="form-label" for="register-name">Full Name</label>
+                        <div class="input-group">
+                            <span class="input-group-icon">👤</span>
+                            <input id="register-name" type="text" class="form-control" placeholder="Khush Patel"
+                                required autocomplete="name" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="register-email">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-icon">📧</span>
+                            <input id="register-email" type="email" class="form-control" placeholder="you@example.com"
+                                required autocomplete="email" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="register-password">Password</label>
+                            <input id="register-password" type="password" class="form-control"
+                                placeholder="Min. 6 chars" required autocomplete="new-password" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="register-confirm">Confirm Password</label>
+                            <input id="register-confirm" type="password" class="form-control"
+                                placeholder="Repeat password" required autocomplete="new-password" />
+                        </div>
+                    </div>
+
+                    <button id="register-submit-btn" type="submit" class="btn btn-primary btn-full btn-lg">
+                        Create Account
+                    </button>
+                </form>
+
+                <div class="auth-switch">
+                    Already have an account?
+                    <a href="#" id="show-login-link">Sign in →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!--  APP SCREEN                                              -->
+    <!-- ======================================================== -->
+    <div id="app-screen" class="hidden">
+        <div class="page-wrapper">
+
+            <!-- ===================== SIDEBAR ===================== -->
+            <aside id="sidebar" class="sidebar" role="navigation" aria-label="Main navigation">
+                <a href="#" class="sidebar-logo" onclick="navigate('dashboard');return false;">
+                    <div class="logo-icon">💰</div>
+                    <div>
+                        <div class="logo-text">Expense Tracker</div>
+                        <div class="logo-sub">Financial Dashboard</div>
+                    </div>
+                </a>
+
+                <span class="nav-section-label">Navigation</span>
+
+                <button class="nav-link active" data-page="dashboard" aria-label="Dashboard">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
+                </button>
+                <button class="nav-link" data-page="transactions" aria-label="Transactions">
+                    <span class="nav-icon">💳</span>
+                    Transactions
+                </button>
+                <button class="nav-link" data-page="analytics" aria-label="Analytics">
+                    <span class="nav-icon">📈</span>
+                    Analytics
+                </button>
+                <button class="nav-link" data-page="budgets" aria-label="Budgets">
+                    <span class="nav-icon">🎯</span>
+                    Budgets
+                </button>
+
+                <div class="sidebar-footer">
+                    <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle light/dark mode">
+                        <span class="theme-toggle-icon" id="theme-icon">🌙</span>
+                        <span id="theme-label">Light Mode</span>
+                        <div class="theme-toggle-pill" aria-hidden="true"></div>
+                    </button>
+                    <div class="user-card">
+                        <div class="user-avatar">
+                            <span class="user-avatar-initials">KP</span>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name user-display-name">Loading...</div>
+                            <div class="user-email user-display-email">...</div>
+                        </div>
+                        <button class="logout-btn" title="Sign out" aria-label="Sign out">↩</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ===================== MAIN CONTENT ===================== -->
+            <main class="main-content">
+
+                <!-- ============================================ DASHBOARD ============ -->
+                <section id="page-dashboard" class="page-section">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-header-title">Dashboard</h1>
+                            <p class="page-header-sub" id="dash-month">Loading...</p>
+                        </div>
+                        <button id="add-txn-btn" class="btn btn-primary" aria-label="Add transaction">
+                            ➕ Add Transaction
+                        </button>
+                    </div>
+
+                    <div class="content-area">
+                        <!-- Stats Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card" style="--card-color:#6366f1;--card-rgb:99,102,241">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-info">
+                                    <div class="stat-label">All-time Balance</div>
+                                    <div class="stat-value" id="dash-balance">$0.00</div>
+                                    <div class="stat-sub" id="dash-txn-count">0 transactions</div>
+                                </div>
+                            </div>
+                            <div class="stat-card" style="--card-color:#10b981;--card-rgb:16,185,129">
+                                <div class="stat-icon">📥</div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Income This Month</div>
+                                    <div class="stat-value amount-income" id="dash-income">$0.00</div>
+                                    <div class="stat-sub">Total received</div>
+                                </div>
+                            </div>
+                            <div class="stat-card" style="--card-color:#ef4444;--card-rgb:239,68,68">
+                                <div class="stat-icon">📤</div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Expenses This Month</div>
+                                    <div class="stat-value amount-expense" id="dash-expense">$0.00</div>
+                                    <div class="stat-sub">Total spent</div>
+                                </div>
+                            </div>
+                            <div class="stat-card" style="--card-color:#f59e0b;--card-rgb:245,158,11">
+                                <div class="stat-icon">📊</div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Net This Month</div>
+                                    <div class="stat-value" id="dash-net">$0.00</div>
+                                    <div class="stat-sub">Income − expenses</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charts -->
+                        <div class="charts-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">📅 Monthly Trend</h3>
+                                    <span class="text-muted text-xs">Last 6 months</span>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="chart-monthly"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">🥧 Spending by Category</h3>
+                                    <span class="text-muted text-xs">This month</span>
+                                </div>
+                                <div class="flex gap-4" style="height:280px;align-items:center;">
+                                    <div style="width:140px;height:140px;flex-shrink:0;">
+                                        <canvas id="chart-category"></canvas>
+                                    </div>
+                                    <div class="category-legend flex-1" id="dash-cat-legend">
+                                        <div class="skeleton" style="height:12px;width:80%;margin-bottom:8px;"></div>
+                                        <div class="skeleton" style="height:12px;width:70%;margin-bottom:8px;"></div>
+                                        <div class="skeleton" style="height:12px;width:60%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Row -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                            <!-- Top Expenses -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">🔥 Top Expenses This Month</h3>
+                                </div>
+                                <div id="top-expenses-list">
+                                    <div class="skeleton" style="height:40px;margin-bottom:12px;"></div>
+                                    <div class="skeleton" style="height:40px;margin-bottom:12px;"></div>
+                                    <div class="skeleton" style="height:40px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Transactions -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">🕐 Recent Transactions</h3>
+                                    <button class="btn btn-sm btn-secondary" onclick="navigate('transactions')">View All
+                                        →</button>
+                                </div>
+                                <div class="table-wrapper">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Category</th>
+                                                <th>Amount</th>
+                                                <th>Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-txn-tbody">
+                                            <tr>
+                                                <td colspan="4" class="text-center">
+                                                    <div style="padding:20px;color:var(--text-muted)">Loading...</div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================ TRANSACTIONS ============ -->
+                <section id="page-transactions" class="page-section hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-header-title">Transactions</h1>
+                            <p class="page-header-sub">Manage all your income and expense records.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="txn-export-btn" class="btn btn-secondary" aria-label="Export CSV">
+                                📥 Export CSV
+                            </button>
+                            <button id="add-txn-btn-2" class="btn btn-primary" aria-label="Add transaction">
+                                ➕ Add Transaction
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="content-area">
+                        <!-- Summary strip -->
+                        <div class="flex gap-3 mb-4">
+                            <div class="card"
+                                style="padding:14px 20px;flex:1;display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:1.2rem;">📥</span>
+                                <div>
+                                    <div class="text-xs text-muted">Income (filtered)</div>
+                                    <div class="font-bold amount-income" id="txn-summary-income">$0.00</div>
+                                </div>
+                            </div>
+                            <div class="card"
+                                style="padding:14px 20px;flex:1;display:flex;align-items:center;gap:12px;">
+                                <span style="font-size:1.2rem;">📤</span>
+                                <div>
+                                    <div class="text-xs text-muted">Expenses (filtered)</div>
+                                    <div class="font-bold amount-expense" id="txn-summary-expense">$0.00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filter Bar -->
+                        <div class="filter-bar">
+                            <input type="text" id="txn-search" class="form-control" placeholder="🔍 Search notes..."
+                                aria-label="Search by note" />
+                            <select id="txn-filter-type" class="form-control" aria-label="Filter by type">
+                                <option value="">All Types</option>
+                                <option value="Income">Income</option>
+                                <option value="Expense">Expense</option>
+                            </select>
+                            <select id="txn-filter-category" class="form-control" aria-label="Filter by category">
+                                <option value="">All Categories</option>
+                            </select>
+                            <input type="date" id="txn-filter-from" class="form-control" aria-label="From date"
+                                max="9999-12-31" />
+                            <input type="date" id="txn-filter-to" class="form-control" aria-label="To date"
+                                max="9999-12-31" />
+                            <select id="txn-sort" class="form-control" aria-label="Sort by">
+                                <option value="date">Sort: Date</option>
+                                <option value="amount">Sort: Amount</option>
+                            </select>
+                        </div>
+
+                        <div class="card" style="padding:0;overflow:hidden;">
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Category</th>
+                                            <th>Amount</th>
+                                            <th>Note</th>
+                                            <th>Type</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="txn-tbody">
+                                        <tr>
+                                            <td colspan="6" class="text-center">
+                                                <div style="padding:40px;color:var(--text-muted)">Loading...</div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="txn-pagination"></div>
+                    </div>
+                </section>
+
+                <!-- ============================================ ANALYTICS ============ -->
+                <section id="page-analytics" class="page-section hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-header-title">Analytics</h1>
+                            <p class="page-header-sub">Visual breakdown of your financial health.</p>
+                        </div>
+                    </div>
+
+                    <div class="content-area">
+                        <!-- Monthly Trend -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h3 class="card-title">📈 Income vs. Expenses — Last 6 Months</h3>
+                            </div>
+                            <div class="chart-container" style="height:320px;">
+                                <canvas id="chart-analytics-monthly"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Two pie charts -->
+                        <div class="charts-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">🔴 Expense Breakdown</h3>
+                                    <span class="badge badge-expense">This Month</span>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="chart-analytics-expense-cat"></canvas>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">🟢 Income Breakdown</h3>
+                                    <span class="badge badge-income">This Month</span>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="chart-analytics-income-cat"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================ BUDGETS ============ -->
+                <section id="page-budgets" class="page-section hidden">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-header-title">Budgets</h1>
+                            <p class="page-header-sub">Set monthly spending limits per category.</p>
+                        </div>
+                        <button id="add-budget-btn" class="btn btn-primary" aria-label="Add budget">
+                            🎯 Set Budget
+                        </button>
+                    </div>
+
+                    <div class="content-area">
+                        <div id="budgets-container">
+                            <div class="flex gap-3">
+                                <div class="skeleton" style="height:140px;flex:1;border-radius:18px;"></div>
+                                <div class="skeleton" style="height:140px;flex:1;border-radius:18px;"></div>
+                                <div class="skeleton" style="height:140px;flex:1;border-radius:18px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!--  MODALS                                                  -->
+    <!-- ======================================================== -->
+
+    <!-- Add/Edit Transaction Modal -->
+    <div id="modal-transaction" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Transaction form">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-txn-title">Add Transaction</h2>
+                <button class="modal-close" aria-label="Close">✕</button>
+            </div>
+
+            <form id="txn-form" novalidate>
+                <!-- Type Toggle -->
+                <div class="type-toggle" role="group" aria-label="Transaction type">
+                    <button id="txn-type-expense" type="button" class="type-toggle-btn expense active"
+                        aria-pressed="true">
+                        📤 Expense
+                    </button>
+                    <button id="txn-type-income" type="button" class="type-toggle-btn income" aria-pressed="false">
+                        📥 Income
+                    </button>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="txn-amount">Amount <span
+                                style="color:var(--brand-danger)">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-icon">$</span>
+                            <input id="txn-amount" type="number" class="form-control" placeholder="0.00" step="0.01"
+                                min="0.01" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="txn-date">Date <span
+                                style="color:var(--brand-danger)">*</span></label>
+                        <input id="txn-date" type="date" class="form-control" required max="9999-12-31" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="txn-category">Category <span
+                            style="color:var(--brand-danger)">*</span></label>
+                    <select id="txn-category" class="form-control" required>
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="txn-note">Note (optional)</label>
+                    <input id="txn-note" type="text" class="form-control" placeholder="e.g. Grocery run at Walmart"
+                        maxlength="500" />
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                    <button type="submit" id="txn-save-btn" class="btn btn-primary">Save Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Budget Modal -->
+    <div id="modal-budget" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Budget form">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-budget-title">Set Monthly Budget</h2>
+                <button class="modal-close" aria-label="Close">✕</button>
+            </div>
+
+            <form id="budget-form" novalidate>
+                <div class="form-group">
+                    <label class="form-label" for="budget-category">Expense Category <span
+                            style="color:var(--brand-danger)">*</span></label>
+                    <select id="budget-category" class="form-control" required>
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="budget-amount">Budget Amount <span
+                            style="color:var(--brand-danger)">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-icon">$</span>
+                        <input id="budget-amount" type="number" class="form-control" placeholder="500.00" step="0.01"
+                            min="1" required />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="budget-month">Month <span
+                                style="color:var(--brand-danger)">*</span></label>
+                        <select id="budget-month" class="form-control" required>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="budget-year">Year <span
+                                style="color:var(--brand-danger)">*</span></label>
+                        <input id="budget-year" type="number" class="form-control" placeholder="2025" min="2020"
+                            max="2099" required />
+                    </div>
+                </div>
+
+                <p class="text-xs text-muted">⚠️ You'll receive a warning when 80% of this budget is used.</p>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                    <button type="submit" id="budget-save-btn" class="btn btn-primary">💾 Save Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- App JS -->
+    <script src="assets/js/app.js"></script>
+</body>
+
+</html>
