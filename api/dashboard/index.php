@@ -15,31 +15,86 @@ match ($endpoint) {
 };
 
 /**
- * Current month summary: total income, expenses, balance, transaction count
+ * Helper — build date range filters from GET params or default to current month
+ */
+function getDateRange(): array
+{
+    $now = new DateTime();
+
+    if (!empty($_GET['date_from']) && !empty($_GET['date_to'])) {
+        return ['from' => $_GET['date_from'], 'to' => $_GET['date_to']];
+    }
+
+    // Default: current month
+    $from = $now->format('Y-m-01');
+    $to = $now->format('Y-m-t');
+    return ['from' => $from, 'to' => $to];
+}
+
+/**
+ * Current period summary: total income, expenses, balance, transaction count
+ * Accepts ?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD for flexible filtering
  */
 function getSummary(int $userId): void
 {
     $conn = getDBConnection();
-    $month = (int) date('m');
-    $year = (int) date('Y');
+    $range = getDateRange();
+    $from = $range['from'];
+    $to = $range['to'];
 
+    // Current period
     $sql = "SELECT
               SUM(CASE WHEN c.type = 'Income'  THEN t.amount ELSE 0 END) AS total_income,
               SUM(CASE WHEN c.type = 'Expense' THEN t.amount ELSE 0 END) AS total_expense,
               COUNT(*) AS transaction_count
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
-            WHERE t.user_id = ? AND MONTH(t.date) = ? AND YEAR(t.date) = ?";
+            WHERE t.user_id = ? AND t.date BETWEEN ? AND ?";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('iii', $userId, $month, $year);
+    $stmt->bind_param('iss', $userId, $from, $to);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
+    $curIncome = (float) ($row['total_income'] ?? 0);
+    $curExpense = (float) ($row['total_expense'] ?? 0);
+
+    // Previous period (same length) for smart insight comparison
+    $fromDate = new DateTime($from);
+    $toDate = new DateTime($to);
+    $diff = (int) $fromDate->diff($toDate)->days + 1;
+    $prevFrom = (clone $fromDate)->modify("-{$diff} days")->format('Y-m-d');
+    $prevTo = $fromDate->modify('-1 day')->format('Y-m-d');
+
+    $prevStmt = $conn->prepare($sql);
+    $prevStmt->bind_param('iss', $userId, $prevFrom, $prevTo);
+    $prevStmt->execute();
+    $prevRow = $prevStmt->get_result()->fetch_assoc();
+    $prevStmt->close();
+
+    $prevExpense = (float) ($prevRow['total_expense'] ?? 0);
+    $prevIncome = (float) ($prevRow['total_income'] ?? 0);
+
+    // Smart insight
+    $insight = null;
+    if ($prevExpense > 0) {
+        $pctChange = round((($curExpense - $prevExpense) / $prevExpense) * 100, 1);
+        if ($pctChange > 10) {
+            $insight = ['type' => 'warning', 'msg' => "⚠️ You spent {$pctChange}% more than the previous period."];
+        } elseif ($pctChange < -10) {
+            $abs = abs($pctChange);
+            $insight = ['type' => 'success', 'msg' => "✅ Great! You spent {$abs}% less than the previous period."];
+        } else {
+            $insight = ['type' => 'info', 'msg' => "📊 Spending is similar to the previous period."];
+        }
+    } elseif ($curIncome > 0 && $curExpense === 0.0) {
+        $insight = ['type' => 'success', 'msg' => '🎉 No expenses recorded this period — great savings!'];
+    }
+
     // All-time balance
     $balSql = "SELECT SUM(CASE WHEN c.type='Income' THEN t.amount ELSE -t.amount END) AS balance
-               FROM transactions t JOIN categories c ON t.category_id = c.id WHERE t.user_id = ?";
+                FROM transactions t JOIN categories c ON t.category_id = c.id WHERE t.user_id = ?";
     $balStmt = $conn->prepare($balSql);
     $balStmt->bind_param('i', $userId);
     $balStmt->execute();
@@ -47,13 +102,20 @@ function getSummary(int $userId): void
     $balStmt->close();
     $conn->close();
 
+    $label = ($from === date('Y-m-01') && $to === date('Y-m-t'))
+        ? date('F Y')
+        : date('M j', strtotime($from)) . ' – ' . date('M j, Y', strtotime($to));
+
     sendResponse(true, 'Summary fetched', [
-        'month' => date('F Y'),
-        'total_income' => (float) ($row['total_income'] ?? 0),
-        'total_expense' => (float) ($row['total_expense'] ?? 0),
-        'net_this_month' => (float) ($row['total_income'] ?? 0) - (float) ($row['total_expense'] ?? 0),
+        'period_label' => $label,
+        'total_income' => $curIncome,
+        'total_expense' => $curExpense,
+        'net_this_month' => $curIncome - $curExpense,
         'all_time_balance' => (float) ($balRow['balance'] ?? 0),
-        'transaction_count' => (int) $row['transaction_count']
+        'transaction_count' => (int) $row['transaction_count'],
+        'prev_expense' => $prevExpense,
+        'prev_income' => $prevIncome,
+        'insight' => $insight
     ]);
 }
 
@@ -63,8 +125,7 @@ function getSummary(int $userId): void
 function getByCategory(int $userId): void
 {
     $conn = getDBConnection();
-    $month = (int) date('m');
-    $year = (int) date('Y');
+    $range = getDateRange();
     $type = $_GET['type'] ?? 'Expense';
 
     $sql = "SELECT c.name, c.icon, c.color, c.type,
@@ -72,12 +133,12 @@ function getByCategory(int $userId): void
                    COUNT(t.id) AS count
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
-            WHERE t.user_id = ? AND c.type = ? AND MONTH(t.date) = ? AND YEAR(t.date) = ?
+            WHERE t.user_id = ? AND c.type = ? AND t.date BETWEEN ? AND ?
             GROUP BY c.id, c.name, c.icon, c.color, c.type
             ORDER BY total DESC";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('isii', $userId, $type, $month, $year);
+    $stmt->bind_param('isss', $userId, $type, $range['from'], $range['to']);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -91,7 +152,6 @@ function getByCategory(int $userId): void
     $stmt->close();
     $conn->close();
 
-    // Add percentage
     foreach ($categories as &$cat) {
         $cat['percentage'] = $grandTotal > 0 ? round(($cat['total'] / $grandTotal) * 100, 1) : 0;
     }
@@ -144,20 +204,19 @@ function getMonthlyTrend(int $userId): void
 function getTopExpenses(int $userId): void
 {
     $conn = getDBConnection();
-    $month = (int) date('m');
-    $year = (int) date('Y');
+    $range = getDateRange();
 
     $sql = "SELECT c.name, c.icon, c.color, SUM(t.amount) AS total
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
             WHERE t.user_id = ? AND c.type = 'Expense'
-              AND MONTH(t.date) = ? AND YEAR(t.date) = ?
+              AND t.date BETWEEN ? AND ?
             GROUP BY c.id, c.name, c.icon, c.color
             ORDER BY total DESC
             LIMIT 5";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('iii', $userId, $month, $year);
+    $stmt->bind_param('iss', $userId, $range['from'], $range['to']);
     $stmt->execute();
     $result = $stmt->get_result();
 

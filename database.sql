@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     email         VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(500) NOT NULL,
     name          VARCHAR(100) NOT NULL DEFAULT '',
+    reset_token   TEXT DEFAULT NULL,
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

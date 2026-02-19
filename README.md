@@ -1,178 +1,84 @@
-# 💰 Expense Tracker + Dashboard
+# 💰 Expense Tracker
 
-> A full-stack expense tracking application with a premium dark UI, real-time charts, JWT authentication, and budget management.
+> A modern, full-stack personal finance application built with PHP, MySQL, and vanilla JavaScript. Features a premium design, interactive charts, and comprehensive financial tools.
 
-![Tech Stack](https://img.shields.io/badge/Stack-PHP%20%7C%20MySQL%20%7C%20JS%20%7C%20Chart.js-6366f1?style=flat-square)
-![Status](https://img.shields.io/badge/Status-Complete-10b981?style=flat-square)
-
----
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![PHP](https://img.shields.io/badge/PHP-8.2+-purple.svg)
+![MySQL](https://img.shields.io/badge/MySQL-8.0+-orange.svg)
 
 ## ✨ Features
 
-### Phase 1 — Core
-- ✅ User Registration & Login with **JWT authentication** (bcrypt + HS256)
-- ✅ Add **Income** and **Expense** transactions
-- ✅ Each transaction: Amount, Category, Date, Note
-- ✅ View all transactions — **sortable** by date or amount
-- ✅ **Filter** by type, category, and date range
-- ✅ Edit and **delete** transactions
-- ✅ Total balance calculation (income minus expenses)
+### CORE FUNCTIONALITY
+- **Dashboard**: Real-time financial overview with smart insights and date filtering (Last 7 days, 30 days, Custom Range).
+- **Transactions**: Add, edit, delete, and search expenses/income.
+- **Budgets**: Set monthly budgets per category with visual progress bars and alerts when nearing limits.
+- **Analytics**: Visualization of spending habits with 6-month trends and category breakdowns.
 
-### Phase 2 — Dashboard
-- ✅ **Monthly bar chart** — income vs. expenses (last 6 months)
-- ✅ **Doughnut pie chart** — spending by category
-- ✅ Current month summary card (income, expenses, net, balance)
-- ✅ **Top 5 expense categories** with progress bars
-- ✅ Recent transactions widget
+### ADVANCED FEATURES
+- **Profile Management**: Update your name and password securely.
+- **Authentication**: Secure registration, login, and **Forgot Password** flow via email OTP.
+- **Smart Insights**: Automatic analysis of spending vs previous periods (e.g. "⚠️ You spent 12% more than last month").
+- **Reporting**: Print-friendly monthly reports and PDF export.
+- **Dark/Light Mode**: Fully responsive theme toggle with persistence.
+- **CSV Export**: Export up to 5,000 transactions for external analysis.
 
-### Phase 3 — Extras
-- ✅ **Set monthly budgets** per expense category
-- ✅ Budget warning at **80% usage** + over-budget alerts
-- ✅ **Export transactions to CSV** (downloadable file)
-- ✅ Full **Analytics page** with line chart + polar area chart
-- ✅ Paginated transaction list
-- ✅ Mobile responsive with sidebar toggle
+---
+
+## 🚀 Installation
+
+### Prerequisites
+- **XAMPP**, WAMP, or any PHP/MySQL environment.
+- PHP 8.0 or higher.
+
+### Setup Steps
+1. **Clone the repository** into your `htdocs` folder:
+   ```bash
+   cd htdocs
+   git clone https://github.com/khushpatel1615/Expense-Tracker.git
+   ```
+
+2. **Configure Database**:
+   - Open `api/config.php` and update your database credentials if needed (default: `root`, no password).
+
+3. **Run Setup**:
+   - Open your browser and navigate to:
+     `http://localhost/Expense-Tracker/setup.php`
+   - This will automatically create the database and tables.
+
+4. **Launch**:
+   - Go to `http://localhost/Expense-Tracker/`
+   - Register a new account to start tracking!
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer       | Technology                          |
-|-------------|-------------------------------------|
-| Backend     | PHP 8+ (REST API)                   |
-| Auth        | JWT (HS256) + bcrypt                |
-| Database    | MySQL (raw SQL)                     |
-| Frontend    | HTML5, CSS3, Vanilla JS (Fetch API) |
-| Charts      | Chart.js v4                         |
-| Fonts       | Google Fonts (Inter + Space Grotesk)|
-| Server      | XAMPP (Apache + PHP + MySQL)        |
+- **Frontend**: HTML5, CSS3 (Custom Properties), Vanilla JavaScript (ES6+), Chart.js
+- **Backend**: PHP 8.2 (REST API architecture)
+- **Database**: MySQL (PDO/MySQLi with prepared statements)
+- **Security**: JWT Authentication (HS256), BCrypt Password Hashing, CSRF protection via tokens
 
 ---
 
-## ⚙️ Getting Started
+## 📸 Screenshots
 
-### Prerequisites
-- XAMPP installed (or any Apache + PHP 8 + MySQL stack)
-- XAMPP running (Apache + MySQL services started)
+| Dashboard (Dark Mode) | Mobile Responsive |
+|---|---|
+| *Real-time stats, charts, and smart insights* | *Fully functional on all device sizes* |
 
-### Setup Steps
-
-**1. Place in XAMPP htdocs**
-```
-Your files should be at: E:\XAMP\htdocs\Expense Tracker\
-```
-
-**2. Start XAMPP Services**
-- Open XAMPP Control Panel
-- Start **Apache** and **MySQL**
-
-**3. Run Database Setup**
-Open your browser and go to:
-```
-http://localhost/Expense%20Tracker/setup.php
-```
-You should see: ✅ Database setup complete!
-
-**4. Launch the App**
-```
-http://localhost/Expense%20Tracker/index.html
-```
-
-**5. (Optional) Delete setup file**
-```bash
-del "E:\XAMP\htdocs\Expense Tracker\setup.php"
-```
-
----
-
-## 🗄️ Database Schema
-
-```sql
-Users        — id, email, password_hash, name, created_at
-Categories   — id, name, icon, type (Income|Expense), color
-Transactions — id, user_id, category_id, amount, note, date
-Budgets      — id, user_id, category_id, amount, month, year
-```
-
-**Seeded Categories (15 total):**
-- Income: Salary 💼, Freelance 💻, Investment 📈, Gift 🎁, Other Income 💰
-- Expense: Food 🍔, Housing 🏠, Transport 🚗, Shopping 🛍️, Healthcare ⚕️, Education 📚, Entertainment 🎮, Utilities 💡, Travel ✈️, Other 📦
-
----
-
-## 🔌 REST API Endpoints
-
-```http
-POST   /Expense Tracker/api/auth/register.php    — Register new user
-POST   /Expense Tracker/api/auth/login.php        — Login, returns JWT
-
-GET    /Expense Tracker/api/transactions/index.php     — Get all (auth required)
-POST   /Expense Tracker/api/transactions/index.php     — Add new transaction
-PUT    /Expense Tracker/api/transactions/index.php?id= — Update transaction
-DELETE /Expense Tracker/api/transactions/index.php?id= — Delete transaction
-
-GET    /Expense Tracker/api/categories/index.php   — Get all categories
-
-GET    /Expense Tracker/api/dashboard/index.php?endpoint=summary
-GET    /Expense Tracker/api/dashboard/index.php?endpoint=by-category
-GET    /Expense Tracker/api/dashboard/index.php?endpoint=monthly-trend
-GET    /Expense Tracker/api/dashboard/index.php?endpoint=top-expenses
-GET    /Expense Tracker/api/dashboard/index.php?endpoint=budget-status
-
-GET    /Expense Tracker/api/budgets/index.php     — Get budgets
-POST   /Expense Tracker/api/budgets/index.php     — Set budget (upsert)
-DELETE /Expense Tracker/api/budgets/index.php?id= — Delete budget
-```
-
----
-
-## 📁 Folder Structure
-
-```
-Expense Tracker/
-├── index.html               ← Single Page Application entry point
-├── setup.php                ← One-time DB setup (delete after use)
-├── database.sql             ← Full schema + seed data
-├── .htaccess                ← Apache configuration
-├── assets/
-│   ├── css/
-│   │   └── style.css        ← Complete design system (dark theme)
-│   └── js/
-│       └── app.js           ← All frontend logic (auth, charts, CRUD)
-└── api/
-    ├── config.php           ← DB connection, JWT helpers, CORS
-    ├── auth/
-    │   ├── register.php
-    │   └── login.php
-    ├── transactions/
-    │   └── index.php        ← Full CRUD with filters & pagination
-    ├── categories/
-    │   └── index.php
-    ├── dashboard/
-    │   └── index.php        ← 5 analytics endpoints
-    └── budgets/
-        └── index.php        ← Budget CRUD with upsert
-```
+| Analytics | Transaction Management |
+|---|---|
+| *Deep dive into spending habits* | *Search, filter, and export data* |
 
 ---
 
 ## 🔒 Security
 
-- Passwords hashed with **bcrypt** (PHP `password_hash`)
-- JWT tokens signed with **HMAC-SHA256**
-- All transaction endpoints require valid JWT in `Authorization: Bearer <token>` header
-- Prepared statements throughout — **zero SQL injection risk**
-- Users can only access **their own data** (user_id verified on every query)
-- CORS headers configured for API access
-
----
-
-## 💼 Interview Talking Points
-
-> *"I built a full-stack expense tracker with a separate PHP REST API backend and a JavaScript SPA frontend. The dashboard uses Chart.js to visualize spending trends and category breakdowns using data from custom SQL aggregate queries (GROUP BY, SUM with CASE). I secured the API with custom JWT tokens using HMAC-SHA256 and handled CORS for cross-origin requests. I used raw SQL with prepared statements instead of an ORM to demonstrate my SQL knowledge."*
-
----
+- **SQL Injection**: Prevented via 100% usage of prepared statements.
+- **XSS**: Output encoding on all user-generated content.
+- **Auth**: Stateless JWT authentication with auto-logout on expiration.
+- **Access Control**: Users can only access their own data.
 
 ## 📄 License
 
-MIT — Built by **Khush Patel** | khushpatel1615@gmail.com | [github.com/khushpatel1615](https://github.com/khushpatel1615)
+This project is open source and available under the [MIT License](LICENSE).

@@ -15,7 +15,9 @@ const State = {
   categories: [],
   transactions: [],
   currentPage: 'dashboard',
+  currentPage: 'dashboard',
   theme: 'dark',
+  dashFilter: { from: '', to: '', type: 'month' } // month | 7 | 30 | 90 | 365 | custom
 };
 
 /* ============================================================
@@ -220,6 +222,8 @@ function navigate(page) {
     case 'transactions': loadTransactions(); break;
     case 'budgets': loadBudgets(); break;
     case 'analytics': loadAnalytics(); break;
+    case 'budgets': loadBudgets(); break;
+    case 'profile': loadProfile(); break;
   }
 }
 
@@ -272,7 +276,17 @@ function showLoginForm() {
 
 function showRegisterForm() {
   $('#login-form-wrap').classList.add('hidden');
+  $('#login-form-wrap').classList.add('hidden');
   $('#register-form-wrap').classList.remove('hidden');
+  $('#forgot-form-wrap').classList.add('hidden');
+}
+
+function showForgotForm() {
+  $('#login-form-wrap').classList.add('hidden');
+  $('#register-form-wrap').classList.add('hidden');
+  $('#forgot-form-wrap').classList.remove('hidden');
+  $('#forgot-step1').classList.remove('hidden');
+  $('#forgot-step2').classList.add('hidden');
 }
 
 async function handleLogin(e) {
@@ -298,6 +312,57 @@ async function handleLogin(e) {
     showToast('Network error. Please check your connection.', 'error');
   }
   setButtonLoading(btn, false, 'Sign In');
+  setButtonLoading(btn, false, 'Sign In');
+}
+
+async function handleForgotStep1(e) {
+  e.preventDefault();
+  const btn = $('#forgot-send-btn');
+  const email = $('#forgot-email').value.trim();
+
+  setButtonLoading(btn, true, 'Sending...');
+  try {
+    const resp = await apiRequest('auth/forgot.php', 'POST', { email });
+    if (resp.success) {
+      $('#forgot-step1').classList.add('hidden');
+      $('#forgot-step2').classList.remove('hidden');
+      if (resp.data.dev_otp) {
+        $('#otp-dev-notice').textContent = `DEV MODE OTP: ${resp.data.dev_otp}`;
+      } else {
+        $('#otp-dev-notice').style.display = 'none';
+      }
+      showToast('OTP sent to your email', 'success');
+    } else {
+      showToast(resp.message || 'Failed to send OTP', 'error');
+    }
+  } catch {
+    showToast('Network error', 'error');
+  }
+  setButtonLoading(btn, false, 'Send OTP');
+}
+
+async function handleForgotStep2(e) {
+  e.preventDefault();
+  const btn = $('#forgot-reset-btn');
+  const email = $('#forgot-email').value.trim();
+  const otp = $('#forgot-otp').value.trim();
+  const newPass = $('#forgot-new-pass').value;
+
+  if (newPass.length < 6) { showToast('Password too short', 'warning'); return; }
+
+  setButtonLoading(btn, true, 'Resetting...');
+  try {
+    const resp = await apiRequest('auth/forgot.php', 'PUT', { email, otp, new_password: newPass });
+    if (resp.success) {
+      showToast('Password reset! Please sign in.', 'success');
+      showLoginForm();
+    } else {
+      showToast(resp.message || 'Reset failed', 'error');
+    }
+  } catch {
+    showToast('Network error', 'error');
+  }
+  setButtonLoading(btn, false, 'Reset Password');
 }
 
 async function handleRegister(e) {
@@ -392,10 +457,149 @@ function renderCategoryOptions(selectEl, filter = null) {
 let dashboardCharts = {};
 
 async function loadDashboard() {
-  loadDashboardSummary();
-  loadDashboardCharts();
-  loadTopExpenses();
-  loadRecentTransactions();
+  // Set filters based on state
+  updateDashFilterUI();
+
+  const params = getDashDateParams();
+  loadDashboardSummary(params);
+  loadDashboardCharts(params);
+  loadTopExpenses(params);
+  loadRecentTransactions(); // Keep recent as-is or filter too? usually recent is just recent
+}
+
+function getDashDateParams() {
+  let { from, to, type } = State.dashFilter;
+  const now = new Date();
+
+  if (type === 'custom') {
+    return { date_from: from, date_to: to };
+  }
+
+  if (type === 'month') {
+    // API defaults to this month if empty, but let's be explicit
+    const y = now.getFullYear(), m = now.getMonth();
+    const firstDay = new Date(y, m, 1);
+    const lastDay = new Date(y, m + 1, 0);
+    return {
+      date_from: formatDateISO(firstDay),
+      date_to: formatDateISO(lastDay)
+    };
+  }
+
+  // Last N days
+  const days = parseInt(type);
+  if (!isNaN(days)) {
+    const past = new Date();
+    past.setDate(now.getDate() - days);
+    return {
+      date_from: formatDateISO(past),
+      date_to: formatDateISO(now)
+    };
+  }
+
+  return {};
+}
+
+function formatDateISO(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function updateDashFilterUI() {
+  $$('.dash-range-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.from === State.dashFilter.type.toString());
+  });
+
+  const customFrom = $('#dash-custom-from');
+  const customTo = $('#dash-custom-to');
+
+  if (State.dashFilter.type === 'custom') {
+    if (customFrom) customFrom.value = State.dashFilter.from;
+    if (customTo) customTo.value = State.dashFilter.to;
+  } else {
+    // If not custom, maybe clear or leave them? leaving is fine
+  }
+}
+
+async function loadDashboardSummary(params) {
+  try {
+    const resp = await apiRequest('dashboard/index.php', 'GET', null, { endpoint: 'summary', ...params });
+    if (resp.success) {
+      const d = resp.data;
+      $('#dash-month').textContent = d.period_label || d.month;
+      $('#dash-balance').textContent = formatCurrency(d.all_time_balance);
+      $('#dash-income').textContent = formatCurrency(d.total_income);
+      $('#dash-expense').textContent = formatCurrency(d.total_expense);
+      $('#dash-net').textContent = formatCurrency(d.net_this_month, true);
+      $('#dash-txn-count').textContent = `${d.transaction_count} transactions`;
+
+      // Smart Insight
+      const insightEl = $('#dash-insight');
+      if (d.insight && insightEl) {
+        insightEl.classList.remove('hidden');
+        insightEl.textContent = d.insight.msg;
+        insightEl.style.backgroundColor = d.insight.type === 'success' ? 'rgba(16,185,129,0.1)' : (d.insight.type === 'warning' ? 'rgba(239,68,68,0.1)' : 'rgba(99,102,241,0.1)');
+        insightEl.style.borderColor = d.insight.type === 'success' ? 'rgba(16,185,129,0.3)' : (d.insight.type === 'warning' ? 'rgba(239,68,68,0.3)' : 'rgba(99,102,241,0.3)');
+        insightEl.style.color = d.insight.type === 'success' ? 'var(--brand-success)' : (d.insight.type === 'warning' ? 'var(--brand-danger)' : 'var(--brand-primary)');
+      } else {
+        insightEl.classList.add('hidden');
+      }
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function loadDashboardCharts(params) {
+  // Monthly Trend (6 months) - This is usually fixed range, but let's check
+  // If the user selects a range, maybe we should just show the trend within that range? 
+  // For now, let's keep monthly trend as the "big picture" (last 6 months) regardless of filter, 
+  // OR we can make the category chart respect the filter.
+
+  // 1. Monthly Trend (Fixed 6 months for context)
+  loadMonthlyTrendChart();
+
+  // 2. Category Pie Chart (Respects Filter)
+  loadCategoryChart(params);
+}
+
+async function loadMonthlyTrendChart() {
+  try {
+    const resp = await apiRequest('dashboard/index.php', 'GET', null, { endpoint: 'monthly-trend' });
+    if (resp.success) renderMonthlyChart(resp.data);
+  } catch { }
+}
+
+async function loadCategoryChart(params) {
+  try {
+    const resp = await apiRequest('dashboard/index.php', 'GET', null, { endpoint: 'by-category', type: 'Expense', ...params });
+    if (resp.success) renderCategoryChart(resp.data);
+  } catch { }
+}
+
+async function loadTopExpenses(params) {
+  try {
+    const resp = await apiRequest('dashboard/index.php', 'GET', null, { endpoint: 'top-expenses', ...params });
+    const list = $('#top-expenses-list');
+    if (resp.success && list) {
+      if (resp.data.length === 0) {
+        list.innerHTML = '<div class="text-muted text-center" style="padding:20px;">No expenses in this period</div>';
+        return;
+      }
+      list.innerHTML = resp.data.map(i => `
+        <div class="flex" style="justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div class="flex gap-2">
+                <span style="font-size:1.2rem;">${i.icon}</span>
+                <div>
+                   <div style="font-weight:500;">${i.name}</div>
+                   <div class="text-xs text-muted">Expense</div>
+                </div>
+            </div>
+            <div style="font-weight:600;color:var(--brand-danger);">-${formatCurrency(i.total)}</div>
+        </div>
+       `).join('');
+    }
+  } catch { }
 }
 
 async function loadDashboardSummary() {
@@ -819,11 +1023,44 @@ async function loadAnalytics() {
   Object.values(analyticsCharts).forEach(c => { if (c) c.destroy(); });
   analyticsCharts = {};
 
+  // Savings rate requires summary data
+  loadAnalyticsSavings();
+
   await Promise.all([
-    loadAnalyticsMonthly(),
-    loadAnalyticsCategoryExpense(),
-    loadAnalyticsCategoryIncome(),
+    loadAnalyticsMonthly(), // This is 6-month trend, typically fixed
+    loadAnalyticsCategoryExpense(), // This month breakdown
+    loadAnalyticsCategoryIncome(), // This month breakdown
   ]);
+}
+
+async function loadAnalyticsSavings() {
+  try {
+    // Get this month's summary
+    const resp = await apiRequest('dashboard/index.php', 'GET', null, { endpoint: 'summary' });
+    if (resp.success) {
+      const d = resp.data;
+      const inc = d.total_income;
+      const exp = d.total_expense;
+      const saved = Math.max(0, inc - exp);
+      const rate = inc > 0 ? Math.round((saved / inc) * 100) : 0;
+
+      const rateEl = $('#analytics-savings-pct');
+      const barEl = $('#analytics-savings-bar');
+      const savedEl = $('#analytics-saved-amt');
+      const incEl = $('#analytics-total-income');
+
+      if (rateEl) {
+        rateEl.textContent = `${rate}%`;
+        rateEl.className = rate >= 20 ? 'font-bold text-success' : (rate >= 0 ? 'font-bold text-warning' : 'font-bold text-danger');
+      }
+      if (barEl) {
+        barEl.style.width = `${rate}%`;
+        barEl.style.backgroundColor = rate >= 20 ? 'var(--brand-success)' : (rate >= 0 ? 'var(--brand-warning)' : 'var(--brand-danger)');
+      }
+      if (savedEl) savedEl.textContent = `Saved: ${formatCurrency(saved)}`;
+      if (incEl) incEl.textContent = `Income: ${formatCurrency(inc)}`;
+    }
+  } catch { }
 }
 
 async function loadAnalyticsMonthly() {
@@ -940,12 +1177,89 @@ async function loadAnalyticsCategoryIncome() {
             borderWidth: 1,
             titleColor: '#f1f5f9',
             bodyColor: '#94a3b8',
-            callbacks: { label: ctx => ` ${formatCurrency(ctx.raw)} (${cats[ctx.dataIndex].percentage}%)` }
+            callbacks: { label: ctx => ` ${formatCurrency(ctx.raw)}` }
           }
         }
       }
     });
+
+    if ($('#analytics-inc-badge')) $('#analytics-inc-badge').textContent = 'This Month';
+    if ($('#analytics-exp-badge')) $('#analytics-exp-badge').textContent = 'This Month';
+
   } catch (err) { console.error(err); }
+}
+
+/* ============================================================
+   PROFILE PAGE
+   ============================================================ */
+
+async function loadProfile() {
+  try {
+    const resp = await apiRequest('auth/profile.php');
+    if (resp.success) {
+      const u = resp.data;
+      $('#profile-name').value = u.name;
+      $('#profile-email-ro').value = u.email;
+      $('#profile-name-display').textContent = u.name;
+      $('#profile-email-display').textContent = u.email;
+
+      const initials = u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      $('#profile-avatar').textContent = initials;
+      $('#profile-joined').textContent = `Member since ${formatDateISO(new Date(u.created_at || Date.now()))}`;
+    }
+  } catch (e) { console.error(e); }
+
+  // Clear password fields
+  $('#profile-cur-pass').value = '';
+  $('#profile-new-pass').value = '';
+  $('#profile-confirm-pass').value = '';
+}
+
+async function handleSaveProfile(e) {
+  e.preventDefault();
+  const btn = $('#profile-save-btn');
+  const name = $('#profile-name').value.trim();
+  const curPass = $('#profile-cur-pass').value;
+  const newPass = $('#profile-new-pass').value;
+  const confPass = $('#profile-confirm-pass').value;
+
+  if (!name) { showToast('Name is required', 'warning'); return; }
+
+  const payload = { name };
+
+  if (newPass) {
+    if (!curPass) { showToast('Current password is required to change password', 'warning'); return; }
+    if (newPass.length < 6) { showToast('New password too short', 'warning'); return; }
+    if (newPass !== confPass) { showToast('New passwords do not match', 'error'); return; }
+    payload.current_password = curPass;
+    payload.new_password = newPass;
+  }
+
+  setButtonLoading(btn, true, 'Saving...');
+  try {
+    const resp = await apiRequest('auth/profile.php', 'PUT', payload);
+    if (resp.success) {
+      showToast('Profile updated successfully!', 'success');
+      // Update global user state
+      State.user.name = resp.data.name;
+      saveAuth(State.token, State.user);
+      updateUserDisplay();
+      loadProfile(); // refresh display
+    } else {
+      showToast(resp.message || 'Update failed', 'error');
+    }
+  } catch {
+    showToast('Network error', 'error');
+  }
+  setButtonLoading(btn, false, '💾 Save Changes');
+}
+
+/* ============================================================
+   PRINT REPORT
+   ============================================================ */
+
+function printReport() {
+  window.print();
 }
 
 function getChartOptions(title = '') {
@@ -1222,7 +1536,44 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#txn-filter-to')?.addEventListener('change', e => { txnFilters.date_to = e.target.value; txnPagination.page = 1; fetchTransactions(); });
   $('#txn-sort')?.addEventListener('change', e => { txnFilters.sort = e.target.value; fetchTransactions(); });
   $('#txn-search')?.addEventListener('input', e => { txnFilters.search = e.target.value.trim(); txnPagination.page = 1; fetchTransactions(); });
+  $('#txn-search')?.addEventListener('input', e => { txnFilters.search = e.target.value.trim(); txnPagination.page = 1; fetchTransactions(); });
   $('#txn-export-btn')?.addEventListener('click', exportCSV);
+
+  // Forgot Password
+  $('#show-forgot-link')?.addEventListener('click', e => { e.preventDefault(); showForgotForm(); });
+  $('#back-to-login')?.addEventListener('click', e => { e.preventDefault(); showLoginForm(); });
+  $('#back-to-login-2')?.addEventListener('click', e => { e.preventDefault(); showLoginForm(); });
+  $('#forgot-step1')?.addEventListener('submit', handleForgotStep1);
+  $('#forgot-step2')?.addEventListener('submit', handleForgotStep2);
+
+  // Dashboard Filters
+  $$('.dash-range-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      State.dashFilter.type = btn.dataset.from;
+      if (btn.dataset.from !== 'custom') {
+        State.dashFilter.from = '';
+        State.dashFilter.to = '';
+        loadDashboard();
+      }
+    });
+  });
+
+  const dFrom = $('#dash-custom-from');
+  const dTo = $('#dash-custom-to');
+
+  function handleCustomDate() {
+    if (dFrom.value && dTo.value) {
+      State.dashFilter.type = 'custom';
+      State.dashFilter.from = dFrom.value;
+      State.dashFilter.to = dTo.value;
+      loadDashboard();
+    }
+  }
+  if (dFrom) dFrom.addEventListener('change', handleCustomDate);
+  if (dTo) dTo.addEventListener('change', handleCustomDate);
+
+  // Profile
+  $('#profile-form')?.addEventListener('submit', handleSaveProfile);
 
   // Budget
   $('#add-budget-btn')?.addEventListener('click', openAddBudgetModal);
