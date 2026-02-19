@@ -60,7 +60,7 @@ function getSummary(int $userId): void
     $curIncome = (float) ($row['total_income'] ?? 0);
     $curExpense = (float) ($row['total_expense'] ?? 0);
 
-    // Previous period (same length) for smart insight comparison
+    // Previous period (same length) for comparison calculation
     $fromDate = new DateTime($from);
     $toDate = new DateTime($to);
     $diff = (int) $fromDate->diff($toDate)->days + 1;
@@ -76,7 +76,7 @@ function getSummary(int $userId): void
     $prevExpense = (float) ($prevRow['total_expense'] ?? 0);
     $prevIncome = (float) ($prevRow['total_income'] ?? 0);
 
-    // Smart insight
+    // Comparison logic
     $insight = null;
     if ($prevExpense > 0) {
         $pctChange = round((($curExpense - $prevExpense) / $prevExpense) * 100, 1);

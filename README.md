@@ -17,7 +17,7 @@
 ### ADVANCED FEATURES
 - **Profile Management**: Update your name and password securely.
 - **Authentication**: Secure registration, login, and **Forgot Password** flow via email OTP.
-- **Smart Insights**: Automatic analysis of spending vs previous periods (e.g. "⚠️ You spent 12% more than last month").
+- **Financial Insights**: Automatic analysis of spending vs previous periods (e.g. "⚠️ You spent 12% more than last month").
 - **Reporting**: Print-friendly monthly reports and PDF export.
 - **Dark/Light Mode**: Fully responsive theme toggle with persistence.
 - **CSV Export**: Export up to 5,000 transactions for external analysis.

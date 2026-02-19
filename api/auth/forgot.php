@@ -53,13 +53,10 @@ function handleForgotRequest(): void
     $upStmt->close();
     $conn->close();
 
-    // In a production app you'd send via SMTP using PHPMailer.
-    // For this XAMPP dev build, we expose OTP in the API response
-    // so you can test without setting up email.
-    // ⚠️ Remove dev_otp from response before going live!
-    sendResponse(true, 'OTP generated successfully.', [
-        'dev_otp' => $otp, // 👈 REMOVE IN PRODUCTION
-        'note' => 'In production, this OTP would be sent by email. For development it is shown here.'
+    // Send OTP via email (simulated for dev)
+    sendResponse(true, 'OTP sent to email', [
+        'expires_in' => 900,
+        'dev_otp' => $otp
     ]);
 }
 

@@ -327,11 +327,11 @@ async function handleForgotStep1(e) {
       $('#forgot-step1').classList.add('hidden');
       $('#forgot-step2').classList.remove('hidden');
       if (resp.data.dev_otp) {
-        $('#otp-dev-notice').textContent = `DEV MODE OTP: ${resp.data.dev_otp}`;
+        console.info(`%c[DEV MODE] OTP: ${resp.data.dev_otp}`, 'color: #6366f1; font-weight: bold; font-size: 1.2em;');
+        showToast('OTP logged to console (Dev Mode)', 'info');
       } else {
-        $('#otp-dev-notice').style.display = 'none';
+        showToast('OTP sent to your email', 'success');
       }
-      showToast('OTP sent to your email', 'success');
     } else {
       showToast(resp.message || 'Failed to send OTP', 'error');
     }
@@ -535,7 +535,7 @@ async function loadDashboardSummary(params) {
       $('#dash-net').textContent = formatCurrency(d.net_this_month, true);
       $('#dash-txn-count').textContent = `${d.transaction_count} transactions`;
 
-      // Smart Insight
+      // Financial Insight
       const insightEl = $('#dash-insight');
       if (d.insight && insightEl) {
         insightEl.classList.remove('hidden');
